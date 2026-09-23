@@ -16,6 +16,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import UserInputTextBar from "@/components/userInputBar/UserInputTextBar";
 
 export default function Home() {
   return (
@@ -28,7 +29,6 @@ export default function Home() {
                 render={<Link href="#new-chat" />}
                 size="lg"
                 tooltip="New chat"
-                className="bg-[#f4b860] text-white font-semibold hover:bg-[#ffd18b] hover:text-[#211a12]"
               >
                 <MessageSquarePlus />
                 <span>New chat</span>
@@ -82,6 +82,7 @@ export default function Home() {
         <main className="flex flex-1 items-center justify-center px-5 py-12 sm:px-8">
           <p className="text-sm text-[#9f968b]">Start a new conversation with Lumina.</p>
         </main>
+          <UserInputTextBar />
       </SidebarInset>
     </SidebarProvider>
   );
