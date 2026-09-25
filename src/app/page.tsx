@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Clock3, LogIn, MessageSquarePlus, Settings } from "lucide-react";
+import { useState } from "react";
 
 import {
   Sidebar,
@@ -17,11 +20,15 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import UserInputTextBar from "@/components/userInputBar/UserInputTextBar";
+import SingUpPopup from "@/components/singupPopup/SingUpPopup";
 
 export default function Home() {
+  const [isAuthPopupOpen, setIsAuthPopupOpen] = useState(false);
+
   return (
-    <SidebarProvider className="min-h-[calc(100svh-4rem)] bg-zinc-900 text-white">
-      <Sidebar collapsible="offcanvas" className="top-16 h-[calc(100svh-4rem)] ">
+    <>
+      <SidebarProvider className="min-h-[calc(100svh-4rem)] bg-zinc-900 text-white">
+        <Sidebar collapsible="offcanvas" className="top-16 h-[calc(100svh-4rem)] ">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -36,7 +43,6 @@ export default function Home() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-
         <SidebarContent className="text-white">
           <SidebarGroup>
             <SidebarGroupLabel  className="text-white font-semibold">Workspace</SidebarGroupLabel>
@@ -56,7 +62,11 @@ export default function Home() {
         <SidebarFooter className="text-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton render={<Link href="#login" />} tooltip="Log in">
+              <SidebarMenuButton
+                type="button"
+                tooltip="Log in"
+                onClick={() => setIsAuthPopupOpen(true)}
+              >
                 <LogIn />
                 <span>Log in</span>
               </SidebarMenuButton>
@@ -69,9 +79,9 @@ export default function Home() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
-      </Sidebar>
+        </Sidebar>
 
-      <SidebarInset className="bg-[#11100f] text-[#f7f1e8]">
+        <SidebarInset className="bg-[#11100f] text-[#f7f1e8]">
         <header className="flex h-12 items-center border-b border-white/10 px-4">
           <SidebarTrigger
             aria-label="Toggle sidebar"
@@ -83,7 +93,9 @@ export default function Home() {
           <p className="text-sm text-[#9f968b]">Start a new conversation with Lumina.</p>
         </main>
           <UserInputTextBar />
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+      <SingUpPopup open={isAuthPopupOpen} onClose={() => setIsAuthPopupOpen(false)} />
+    </>
   );
 }
