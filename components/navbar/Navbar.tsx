@@ -1,14 +1,16 @@
-"use client";
 
 import Link from "next/link";
 import { LogIn, Sparkles } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import SingUpPopup from "@/components/singupPopup/SingUpPopup";
+import { auth } from "@/src/lib/auth";
+import { headers } from "next/headers";
 
-const Navbar = () => {
-  const [isAuthPopupOpen, setIsAuthPopupOpen] = useState(false);
+const Navbar = async () => {
 
+      const session = await auth.api.getSession({ headers: await headers() });
+      console.log(session);
+
+  
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#11100f]/90 backdrop-blur-xl">
@@ -26,19 +28,22 @@ const Navbar = () => {
           </span>
         </Link>
 
-          <Button
+        {session ? (
+          <span className="border-white/15 font-semibold bg-transparent text-[#f7f1e8]"> {`Hi : ${session?.user?.name}`}</span>
+        ) : ( <Button
+         nativeButton={false}
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setIsAuthPopupOpen(true)}
+            render={<Link href="/signin" />}
             className="border-white/15 bg-transparent text-[#f7f1e8] hover:border-[#f4b860]/60 hover:bg-[#f4b860]/10 hover:text-[#f4b860]"
           >
             <LogIn />
             Log in
-          </Button>
+          </Button>)}
+         
         </div>
       </header>
-      <SingUpPopup open={isAuthPopupOpen} onClose={() => setIsAuthPopupOpen(false)} />
     </>
   );
 };
