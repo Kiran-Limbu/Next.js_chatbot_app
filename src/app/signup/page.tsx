@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { LogIn, X } from "lucide-react";
 
@@ -8,25 +9,35 @@ import { authClient } from "@/src/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function SignInPopup() {
+
+export default function SingUpPopup() {
+  const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEmailSignIn = async (event: FormEvent<HTMLFormElement>) => {
+
+  const handleEmailSignUp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
     setIsLoading(true);
 
-    const { error: signInError } = await authClient.signIn.email({
+    const { error: signUpError } = await authClient.signUp.email({
+      name,
       email,
       password,
-      rememberMe: true,
+      callbackURL: "/chat",
     });
 
     setIsLoading(false);
-    if (signInError) setError(signInError.message ?? "Unable to sign in.");
+    if (signUpError) {
+      setError(signUpError.message ?? "Unable to sign up.");
+      return;
+    }
+    router.replace("/chat");
+    router.refresh();
   };
 
   const handleGoogleSignIn = async () => {
@@ -35,7 +46,7 @@ export default function SignInPopup() {
 
     const { error: signInError } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/",
+      callbackURL: "/chat",
     });
 
     if (signInError) {
@@ -45,29 +56,34 @@ export default function SignInPopup() {
   };
 
   return (
-    <main className="flex min-h-[calc(100svh-4rem)] items-center justify-center bg-[#11100f] px-4 py-10 text-[#f7f1e8]">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm transition-all"
+      role="presentation"
+    >
       <section
         role="dialog"
         aria-modal="true"
-        aria-labelledby="sign-in-popup-title"
-        className="relative w-full max-w-md rounded-2xl border border-white/15 bg-[#1a1816] p-6 shadow-2xl shadow-black/40"
+        aria-labelledby="auth-popup-title"
+        className="relative w-full max-w-md rounded-2xl border border-white/15 bg-[#1a1816] p-6 text-[#f7f1e8] shadow-2xl shadow-black/40"
       >
         <Button
-          render={<Link href="/" />}
+          type="button"
           variant="ghost"
           size="icon"
-          aria-label="Close sign in popup"
+          aria-label="Close login popup"
+          nativeButton={false}
+        render={<Link href="/" />}
           className="absolute right-4 top-4 text-[#bcb4a9] hover:bg-white/10 hover:text-[#f7f1e8]"
         >
           <X />
         </Button>
 
         <div className="pr-10">
-          <h1 id="sign-in-popup-title" className="text-xl font-semibold">
-            Sign in
-          </h1>
+          <h2 id="auth-popup-title" className="text-xl font-semibold">
+            Sign up
+          </h2>
           <p className="mt-2 text-sm text-[#9f968b]">
-            Welcome back to Lumina.
+            Continue your conversation with Lumina.
           </p>
         </div>
 
@@ -87,7 +103,16 @@ export default function SignInPopup() {
           <span className="h-px flex-1 bg-white/10" />
         </div>
 
-        <form onSubmit={handleEmailSignIn} className="space-y-3">
+        <form onSubmit={handleEmailSignUp} className="space-y-3">
+          <Input
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Enter Name"
+            autoComplete="name"
+            required
+            className="h-11 border-white/15 bg-white/5 text-[#f7f1e8] placeholder:text-[#81786f]"
+          />
           <Input
             type="email"
             value={email}
@@ -113,21 +138,22 @@ export default function SignInPopup() {
             className="h-11 w-full bg-[#f4b860] text-[#211a12] hover:bg-[#f7ca82]"
           >
             <LogIn />
-            {isLoading ? "Signing in..." : "Sign in with email"}
+            {isLoading ? "Signing up..." : "Sign up with email"}
           </Button>
         </form>
 
         <p className="mt-5 text-center text-sm text-[#9f968b]">
-          Need an account?{" "}
+          Already have an account?{" "}
           <Button
-            render={<Link href="/" />}
+          nativeButton={false}
+            render={<Link href="/signin" />}
             variant="link"
             className="h-auto p-0 text-[#f4b860] hover:text-[#f7ca82]"
           >
-            Sign up
+            Sign in
           </Button>
         </p>
       </section>
-    </main>
+    </div>
   );
 }
