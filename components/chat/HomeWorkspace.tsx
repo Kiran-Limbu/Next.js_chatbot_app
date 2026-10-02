@@ -1,5 +1,3 @@
-"use client";
-
 import { Clock3, LogIn, MessageSquarePlus, Settings } from "lucide-react";
 
 import {
@@ -17,8 +15,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import UserInputTextBar from "@/components/userInputBar/UserInputTextBar";
 import Link from "next/link";
+import InputTextBar from "@/components/userInputBar/InputTextBar";
 
 export default function HomeWorkspace() {
   return (
@@ -77,7 +75,7 @@ export default function HomeWorkspace() {
         <main className="flex flex-1 items-center justify-center px-5 py-12 sm:px-8">
           <p className="text-sm text-[#9f968b]">Start a new conversation with Lumina.</p>
         </main>
-        <UserInputTextBar />
+        <InputTextBar />
       </SidebarInset>
     </SidebarProvider>
   );

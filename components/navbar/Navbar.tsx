@@ -8,7 +8,6 @@ import { headers } from "next/headers";
 const Navbar = async () => {
 
       const session = await auth.api.getSession({ headers: await headers() });
-      console.log(session);
 
   
   return (

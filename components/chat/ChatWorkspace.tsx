@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Clock3, LogOut, MessageSquarePlus, Settings, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Clock3,
+  LogOut,
+  MessageSquarePlus,
+  Settings,
+  UserRound,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -20,20 +26,50 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import UserInputTextBar from "@/components/userInputBar/UserInputTextBar";
 import { authClient } from "@/src/lib/auth-client";
+import InputTextBar from "@/components/userInputBar/InputTextBar";
 
-type ChatWorkspaceProps = {
-  user: {
-    name: string;
-    email: string;
-    image?: string | null;
-  };
+type User={
+  name: string;
+  email: string;
+  image?: string | null;
 };
 
-export default function ChatWorkspace({ user }: ChatWorkspaceProps) {
+type Conversations= {
+  _id: string;
+  userId: string;
+  title: string;
+};
+
+type Message = {
+  _id: string;
+  content: string;
+  role: "user" | "model";
+};
+
+type ChatWorkspaceProps = {
+  user: User;
+  conversations: Conversations[];
+  activeConversationTitle?: string;
+  messages?: Message[];
+};
+
+export default function ChatWorkspace({
+  user,
+  conversations,
+  activeConversationTitle,
+  messages = [],
+}: ChatWorkspaceProps) {
   const router = useRouter();
+
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [visibleMessages, setVisibleMessages] = useState(messages);
+
+  useEffect(() => {
+    setVisibleMessages(messages);
+  }, [messages]);
+
+
   const initials = user.name
     .split(/\s+/)
     .map((part) => part[0])
@@ -54,7 +90,11 @@ export default function ChatWorkspace({ user }: ChatWorkspaceProps) {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton render={<Link href="#new-chat" />} size="lg" tooltip="New chat">
+              <SidebarMenuButton
+                render={<Link href="#new-chat" />}
+                size="lg"
+                tooltip="New chat"
+              >
                 <MessageSquarePlus />
                 <span>New chat</span>
               </SidebarMenuButton>
@@ -73,16 +113,26 @@ export default function ChatWorkspace({ user }: ChatWorkspaceProps) {
                     <Clock3 />
                     <span>Recent chats</span>
                   </SidebarGroupLabel>
+                  {/* //..dynamic link btn */}
+                  {conversations.map((data) =>(
+                    <SidebarMenuButton key={data._id} render={<Link href={`/chat/${data._id}`}/> }>
+                    <span>{data.title}</span>
+                  </SidebarMenuButton>
+                  ))}
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          <SidebarGroup></SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter className="text-white">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton render={<Link href="#settings" />} tooltip="Settings">
+              <SidebarMenuButton
+                render={<Link href="#settings" />}
+                tooltip="Settings"
+              >
                 <Settings />
                 <span>Settings</span>
               </SidebarMenuButton>
@@ -102,8 +152,12 @@ export default function ChatWorkspace({ user }: ChatWorkspaceProps) {
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-[#f7f1e8]">{user.name}</p>
-                  <p className="truncate text-xs text-[#9f968b]">{user.email}</p>
+                  <p className="truncate text-sm font-medium text-[#f7f1e8]">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-xs text-[#9f968b]">
+                    {user.email}
+                  </p>
                 </div>
                 <SidebarMenuButton
                   type="button"
@@ -128,12 +182,50 @@ export default function ChatWorkspace({ user }: ChatWorkspaceProps) {
             aria-label="Toggle sidebar"
             className="text-[#bcb4a9] hover:bg-white/5 hover:text-[#f7f1e8]"
           />
-          <span className="ml-2 text-sm text-[#9f968b]">New conversation</span>
+          <span className="ml-2 truncate text-sm text-[#9f968b]">
+            {activeConversationTitle ?? "New conversation"}
+          </span>
         </header>
-        <main className="flex flex-1 items-center justify-center px-5 py-12 sm:px-8">
-          <p className="text-sm text-[#9f968b]">Start a new conversation with Lumina.</p>
+        <main className="min-h-0 flex-1 overflow-y-auto px-5 py-8 sm:px-8">
+          {activeConversationTitle || visibleMessages.length > 0 ? (
+            <div className="mx-auto w-full max-w-5xl space-y-6">
+              {visibleMessages.map((message) => (
+                <div
+                  key={message._id}
+                  className={
+                    message.role === "user" ? "flex justify-end" : "w-full"
+                  }
+                >
+                  <p
+                    className={
+                      message.role === "user"
+                        ? "max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-[#f4b860] px-4 py-3 text-[#211a12] sm:max-w-[75%]"
+                        : "w-full whitespace-pre-wrap break-words py-1 leading-7 text-[#f7f1e8]"
+                    }
+                  >
+                    {message.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-[#9f968b]">
+                Start a new conversation with Lumina.
+              </p>
+            </div>
+          )}
         </main>
-        <UserInputTextBar />
+        <InputTextBar
+          onMessageAdded={(message) =>
+            setVisibleMessages((current) => [...current, message])
+          }
+          onMessageRemoved={(messageId) =>
+            setVisibleMessages((current) =>
+              current.filter((message) => message._id !== messageId),
+            )
+          }
+        />
       </SidebarInset>
     </SidebarProvider>
   );
