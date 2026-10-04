@@ -10,5 +10,9 @@ export default async function Home() {
     redirect("/chat");
   }
 
-  return (<HomeWorkspace />);
+  return (
+    <>
+      <HomeWorkspace />
+    </>
+  );
 }
