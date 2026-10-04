@@ -25,7 +25,7 @@ export default function HomeWorkspace() {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton render={<Link href="#new-chat" />} size="lg" tooltip="New chat">
+              <SidebarMenuButton render={<Link href="/" />} size="lg" tooltip="New chat">
                 <MessageSquarePlus />
                 <span>New chat</span>
               </SidebarMenuButton>

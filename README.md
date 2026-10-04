@@ -1,18 +1,19 @@
 # Lumina Chatbot App
 
-Lumina is a Next.js chatbot workspace with Better Auth, MongoDB persistence, and a live-updating chat interface.
+Lumina is a Next.js chatbot application with Better Auth, MongoDB storage, and a Gemini-powered assistant flow.
 
 ## Stack
 
 - Next.js 16 App Router
 - React 19
-- Better Auth with email/password and Google sign-in
-- MongoDB with Mongoose for conversations and messages
+- Better Auth
+- MongoDB + Mongoose
+- Gemini API integration
 - Tailwind CSS
 
 ## Environment
 
-Create `.env.local` in the project root:
+Create a `.env.local` file in the project root:
 
 ```env
 DB_URL=mongodb://localhost:27017/your-database
@@ -20,9 +21,14 @@ GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 SERVER_URL=http://localhost:3000
 BASE_URL=http://localhost:3000
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
-`SERVER_URL` configures the Better Auth client. `BASE_URL` is the Axios API base URL used by chat requests; for local development, set it to the running app origin. Configure production values in the hosting environment. `GEMINI_API_KEY` is needed only when connecting the Gemini module to chat generation; chat currently returns a temporary hard-coded assistant response.
+- `DB_URL` connects MongoDB.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable Google sign-in.
+- `SERVER_URL` is used by the Better Auth client.
+- `BASE_URL` is used by the frontend API wrapper for chat requests.
+- `GEMINI_API_KEY` is required for the Gemini integration in the chat API.
 
 ## Install and run
 
@@ -31,7 +37,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000
 
 ## Routes
 
@@ -40,10 +46,15 @@ Open http://localhost:3000.
 | `/` | Public home workspace; signed-in users are redirected to `/chat` |
 | `/signin` | Email/password and Google sign-in |
 | `/signup` | Email/password and Google sign-up |
-| `/chat` | Authenticated workspace and new conversation entry point |
-| `/chat/[id]` | An authenticated conversation and its messages |
+| `/chat` | Authenticated chat workspace and new conversation start |
+| `/chat/[id]` | Authenticated conversation detail page |
 
-Chat messages are saved through `/api/chat` for a new conversation and `/api/chat/[id]` for an existing one. The user's message appears immediately in the interface; the assistant message appears when the API responds. Conversations and messages are stored separately and linked by `conversationId`.
+## Chat behavior
+
+- `POST /api/chat` creates a conversation and stores the initial user and assistant messages.
+- `POST /api/chat/[id]` adds a message to an existing conversation and verifies ownership.
+- Messages are stored in MongoDB and linked by `conversationId`.
+- The client adds the user message optimistically and shows the assistant response when the API returns it.
 
 ## Production build
 
@@ -54,10 +65,19 @@ npm run start
 
 ## Key files
 
-- `src/lib/auth.ts` and `src/lib/auth-client.ts` — server and client auth configuration
-- `src/lib/db.ts` — Mongoose database connection
-- `src/models/conversation.model.ts` and `src/models/message.model.ts` — persisted chat models
+- `src/lib/auth.ts` — Better Auth and MongoDB adapter setup
+- `src/lib/auth-client.ts` — client-side auth helper
+- `src/lib/db.ts` — MongoDB connection
+- `src/lib/gemini.ts` — Gemini generation client
+- `src/models/conversation.model.ts` — conversation schema
+- `src/models/message.model.ts` — message schema
 - `src/app/api/auth/[...id]/route.ts` — Better Auth API handler
-- `src/app/api/chat/route.ts` and `src/app/api/chat/[id]/route.ts` — chat APIs
-- `components/chat/ChatWorkspace.tsx` and `components/userInputBar/InputTextBar.tsx` — chat UI and live message state
+- `src/app/api/chat/route.ts` — create new conversation and first message
+- `src/app/api/chat/[id]/route.ts` — add message to existing conversation
+- `components/chat/ChatWorkspace.tsx` — chat UI and message state
+- `components/userInputBar/InputTextBar.tsx` — send-message input and optimistic updates
 - `src/app/layout.tsx` — app shell and layout
+
+## Deployment note
+
+Deploy this as a standard Next.js production app and set all required environment variables in the host environment before starting the app.

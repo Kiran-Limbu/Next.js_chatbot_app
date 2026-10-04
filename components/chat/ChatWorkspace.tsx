@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Clock3,
   LogOut,
@@ -32,7 +32,7 @@ import InputTextBar from "@/components/userInputBar/InputTextBar";
 type User={
   name: string;
   email: string;
-  image?: string | null;
+  image?: string | null | undefined;
 };
 
 type Conversations= {
@@ -64,15 +64,22 @@ export default function ChatWorkspace({
 
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [visibleMessages, setVisibleMessages] = useState(messages);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setVisibleMessages(messages);
   }, [messages]);
 
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
+  }, [visibleMessages]);
+
 
   const initials = user.name
     .split(/\s+/)
-    .map((part) => part[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
@@ -85,13 +92,13 @@ export default function ChatWorkspace({
   };
 
   return (
-    <SidebarProvider className="min-h-[calc(100svh-4rem)] bg-zinc-900 text-white">
+    <SidebarProvider className="h-[calc(100svh-4rem)] min-h-0 bg-zinc-900 text-white">
       <Sidebar collapsible="offcanvas" className="top-16 h-[calc(100svh-4rem)]">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                render={<Link href="#new-chat" />}
+                render={<Link href="/chat" />}
                 size="lg"
                 tooltip="New chat"
               >
@@ -176,8 +183,8 @@ export default function ChatWorkspace({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="bg-[#11100f] text-[#f7f1e8]">
-        <header className="flex h-12 items-center border-b border-white/10 px-4">
+      <SidebarInset className="h-full overflow-hidden bg-[#11100f] text-[#f7f1e8]">
+        <header className="flex h-12 shrink-0 items-center border-b border-white/10 px-3">
           <SidebarTrigger
             aria-label="Toggle sidebar"
             className="text-[#bcb4a9] hover:bg-white/5 hover:text-[#f7f1e8]"
@@ -186,9 +193,12 @@ export default function ChatWorkspace({
             {activeConversationTitle ?? "New conversation"}
           </span>
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto px-5 py-8 sm:px-8">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 sm:px-8">
           {activeConversationTitle || visibleMessages.length > 0 ? (
-            <div className="mx-auto w-full max-w-5xl space-y-6">
+            <div
+              ref={messagesContainerRef}
+              className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-6 overflow-y-auto overscroll-contain scrollbar-none scroll-smooth py-8 pb-12"
+            >
               {visibleMessages.map((message) => (
                 <div
                   key={message._id}
@@ -199,8 +209,8 @@ export default function ChatWorkspace({
                   <p
                     className={
                       message.role === "user"
-                        ? "max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-[#f4b860] px-4 py-3 text-[#211a12] sm:max-w-[75%]"
-                        : "w-full whitespace-pre-wrap break-words py-1 leading-7 text-[#f7f1e8]"
+                        ? "max-w-[85%] whitespace-pre-wrap wrap-break-word rounded-2xl bg-[#f4b860] px-4 py-3 text-[#211a12] sm:max-w-[75%]"
+                        : "w-full whitespace-pre-wrap wrap-break-word py-1 leading-7 text-[#f7f1e8]"
                     }
                   >
                     {message.content}
@@ -209,7 +219,7 @@ export default function ChatWorkspace({
               ))}
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex min-h-0 flex-1 items-center justify-center">
               <p className="text-sm text-[#9f968b]">
                 Start a new conversation with Lumina.
               </p>
@@ -218,12 +228,7 @@ export default function ChatWorkspace({
         </main>
         <InputTextBar
           onMessageAdded={(message) =>
-            setVisibleMessages((current) => [...current, message])
-          }
-          onMessageRemoved={(messageId) =>
-            setVisibleMessages((current) =>
-              current.filter((message) => message._id !== messageId),
-            )
+            setVisibleMessages((current: any) => [...current, message])
           }
         />
       </SidebarInset>

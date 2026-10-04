@@ -4,6 +4,7 @@ import conversationModel from "@/src/models/conversation.model";
 import messageModel from "@/src/models/message.model";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { generateAIResponse } from "@/src/lib/gemini";
 
 connectDB();
 export async function POST(
@@ -32,7 +33,7 @@ export async function POST(
 
     const body = await req.json();
 
-    const userMessage = body.message?.trim();
+    const userMessage = body.message.trim();
 
     if (!userMessage) {
       return NextResponse.json(
@@ -48,12 +49,9 @@ export async function POST(
       content: userMessage,
     });
 
-    // Temporary response.
-    // Later this will come from the LLM.
-    const aiResponse =
-      "This is a temporary AI response. We will connect the LLM next.";
 
     //An LLM generate massage like: "Pointer in cpp is ......."
+     const aiResponse = await generateAIResponse(userMessage);
     const messageData = await messageModel.create({
       conversationId: id,
       role: "model",

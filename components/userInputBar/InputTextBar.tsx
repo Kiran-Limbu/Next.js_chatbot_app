@@ -17,12 +17,10 @@ type Message = {
 
 type InputTextBarProps = {
   onMessageAdded?: (message: Message) => void;
-  onMessageRemoved?: (messageId: string) => void;
 };
 
 const InputTextBar = ({
   onMessageAdded,
-  onMessageRemoved,
 }: InputTextBarProps) => {
   const params = useParams<{ id?: string }>();
   const conversationId = params.id;
@@ -43,42 +41,30 @@ const InputTextBar = ({
       return;
     }
 
-    const optimisticId = `optimistic-${crypto.randomUUID()}`;
-    if (onMessageAdded) {
-      onMessageAdded({
-        _id: optimisticId,
-        role: "user",
-        content: submittedMessage,
-      });
-    }
-  ;
     setMessage("");
     setError("");
     setIsSubmitting(true);
-
+    
     try {
       const url = conversationId ? `/api/chat/${conversationId}` : "/api/chat";
-      const response = await apiClientWraper.post(url, {
-        message: submittedMessage,
-      });
-
-      const assistantMessage = response.data.messageData as Message;
-
+      const response = await apiClientWraper.post(url, {message});
+      
+      const assistantMessage = response.data.messageData;
+      console.log(`YOUR USER ID'S : ${assistantMessage._id}`)
+      console.log(`YOUR USER NAME  : ${assistantMessage.content}`)
       if (onMessageAdded) {
         onMessageAdded({
           _id: assistantMessage._id,
-          role: "model",
-          content: assistantMessage.content,
+          role: "user",
+          content: submittedMessage,
         });
       }
-
+      
       if (!conversationId) {
         router.replace(`/chat/${response.data.conversationId}`);
       }
+    router.refresh();
     } catch {
-      if (onMessageRemoved) {
-        onMessageRemoved(optimisticId);
-      }
       setMessage(submittedMessage);
       setError("Message could not be sent. Please try again.");
     } finally {
@@ -89,23 +75,23 @@ const InputTextBar = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-white/10 bg-[#11100f] p-4 sm:px-8"
+      className="w-full shrink-0 bg-transparent p-3 sm:px-6 sm:py-4 shadow-2xl shadow-zinc-500/13"
     >
-      <div className="mx-auto flex w-full max-w-3xl items-center gap-2 rounded-xl border border-white/15 bg-white/5 p-2 shadow-lg shadow-black/10">
+      <div className="mx-auto px-5 py-2 flex justify-center text-center bg-zinc-900  w-full max-w-3xl items-center gap-2 rounded-full shadow-xl shadow-cyan-500/3">
         <Input
           type="text"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           placeholder="Ask anything"
           aria-label="Message"
-          className="h-10 border-0 bg-transparent px-2 text-[#f7f1e8] placeholder:text-[#9f968b] focus-visible:ring-0"
+          className="h-10 border-none focus:ring-0 focus:ring-offset-0 focus:outline-none px-2 w-full text-[#f7f1e8] placeholder:text-[#9f968b]"
         />
         <Button
           type="submit"
           size="icon"
           aria-label="Send message"
           disabled={!message.trim() || isSubmitting}
-          className="bg-[#070605] text-[#11100f] hover:bg-white cursor-pointer"
+          className="bg-[#f4b860] text-[#fdfbf8] hover:bg-[#f4b862] cursor-pointer"
         >
           <Send />
         </Button>
