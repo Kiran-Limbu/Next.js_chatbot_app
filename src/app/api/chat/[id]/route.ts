@@ -87,3 +87,56 @@ export async function GET(
     conversation: conversationById,
   });
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+
+    const conversation = await conversationModel.findOne({
+      _id: id,
+      userId: session.user.id,
+    });
+
+    if (!conversation) {
+      return NextResponse.json(
+        { message: "Conversation not found" },
+        { status: 404 }
+      );
+    }
+
+    await messageModel.deleteMany({
+      conversationId: conversation._id,
+    });
+
+    // 5. Delete the conversation
+    await conversationModel.deleteOne({
+      _id: conversation._id,
+      userId: session.user.id,
+    });
+
+    return NextResponse.json({
+      message: "Conversation deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete conversation error:", error);
+
+    return NextResponse.json(
+      { message: "Failed to delete conversation" },
+      { status: 500 }
+    );
+  }
+}
