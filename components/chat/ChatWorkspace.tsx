@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   Clock3,
+  Ellipsis,
   LogOut,
   MessageSquarePlus,
   Settings,
   UserRound,
 } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
+import { usePathname } from "next/navigation";
 
 import {
   Sidebar,
@@ -21,6 +24,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -29,13 +33,13 @@ import {
 import { authClient } from "@/src/lib/auth-client";
 import InputTextBar from "@/components/userInputBar/InputTextBar";
 
-type User={
+type User = {
   name: string;
   email: string;
   image?: string | null | undefined;
 };
 
-type Conversations= {
+type Conversations = {
   _id: string;
   userId: string;
   title: string;
@@ -46,6 +50,8 @@ type Message = {
   content: string;
   role: "user" | "model";
 };
+
+const EMPTY_MESSAGES: Message[] = [];
 
 type ChatWorkspaceProps = {
   user: User;
@@ -58,17 +64,26 @@ export default function ChatWorkspace({
   user,
   conversations,
   activeConversationTitle,
-  messages = [],
+  messages = EMPTY_MESSAGES,
 }: ChatWorkspaceProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [deletingConversationId, setDeletingConversationId] = useState<
+    string | null
+  >(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [conversationToDelete, setConversationToDelete] =
+    useState<Conversations | null>(null);
   const [visibleMessages, setVisibleMessages] = useState(messages);
+  const [previousMessages, setPreviousMessages] = useState(messages);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  if (messages !== previousMessages) {
+    setPreviousMessages(messages);
     setVisibleMessages(messages);
-  }, [messages]);
+  }
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -77,18 +92,43 @@ export default function ChatWorkspace({
     }
   }, [visibleMessages]);
 
-
-  const initials = user.name
-    .split(/\s+/)
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = user.name.split(/\s+/).join("").slice(0, 2).toUpperCase();
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
     await authClient.signOut();
     router.replace("/");
     router.refresh();
+  };
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    setDeletingConversationId(conversationId);
+    setDeleteError(null);
+
+    try {
+      const response = await fetch(`/api/chat/${conversationId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message ?? "Failed to delete conversation");
+      }
+
+      if (pathname === `/chat/${conversationId}`) {
+        router.replace("/chat");
+      }
+      router.refresh();
+    } catch (error) {
+      console.error("Delete conversation error:", error);
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete conversation",
+      );
+    } finally {
+      setDeletingConversationId(null);
+    }
   };
 
   return (
@@ -114,20 +154,34 @@ export default function ChatWorkspace({
               Workspace
             </SidebarGroupLabel>
             <SidebarGroupContent>
+              <SidebarGroupLabel className="space-x-2.5 text-white">
+                <Clock3 />
+                <span>Recent chats</span>
+              </SidebarGroupLabel>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarGroupLabel className="space-x-2.5 text-white">
-                    <Clock3 />
-                    <span>Recent chats</span>
-                  </SidebarGroupLabel>
-                  {/* //..dynamic link btn */}
-                  {conversations.map((data) =>(
-                    <SidebarMenuButton key={data._id} render={<Link href={`/chat/${data._id}`}/> }>
-                    <span>{data.title}</span>
-                  </SidebarMenuButton>
-                  ))}
-                </SidebarMenuItem>
+                {conversations.map((data) => (
+                  <SidebarMenuItem key={data._id}>
+                    <SidebarMenuButton
+                      render={<Link href={`/chat/${data._id}`} />}
+                    >
+                      <span>{data.title}</span>
+                    </SidebarMenuButton>
+                    <SidebarMenuAction
+                      showOnHover
+                      aria-label={`Delete ${data.title}`}
+                      disabled={deletingConversationId === data._id}
+                      onClick={() => setConversationToDelete(data)}
+                    >
+                      <Ellipsis aria-hidden="true" />
+                    </SidebarMenuAction>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
+              {deleteError && (
+                <p role="alert" className="px-2 py-2 text-xs text-red-400">
+                  {deleteError}
+                </p>
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
           <SidebarGroup></SidebarGroup>
@@ -228,10 +282,56 @@ export default function ChatWorkspace({
         </main>
         <InputTextBar
           onMessageAdded={(message) =>
-            setVisibleMessages((current: any) => [...current, message])
+            setVisibleMessages((current) => [...current, message])
           }
         />
       </SidebarInset>
+      <Dialog.Root
+        open={conversationToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setConversationToDelete(null);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
+          <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-white/10 bg-[#1b1917] p-5 text-[#f7f1e8] shadow-xl outline-none">
+            <Dialog.Title className="text-base font-semibold">
+              Delete chat?
+            </Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-[#bcb4a9]">
+              This will permanently delete &quot;
+              {conversationToDelete?.title}&quot;. This can&apos;t be undone.
+            </Dialog.Description>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConversationToDelete(null);
+                  router.replace("/chat");
+                }}
+                className="rounded-md border border-white/15 px-3 py-2 text-sm hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingConversationId === conversationToDelete?._id}
+                onClick={() => {
+                  if (conversationToDelete) {
+                    void handleDeleteConversation(conversationToDelete._id);
+                    setConversationToDelete(null);
+                  }
+                }}
+                className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deletingConversationId === conversationToDelete?._id
+                  ? "Deleting..."
+                  : "Delete chat"}
+              </button>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
     </SidebarProvider>
   );
 }
